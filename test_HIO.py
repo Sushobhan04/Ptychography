@@ -25,7 +25,7 @@ def main():
     # file_name = 'resChart.h5'
     file_name = 'valset_1.h5'
 
-    file = h5py.File(path_test+ file_name,'r')
+    file = h5py.File(path_test+'data/'+ file_name,'r')
     ks = file.keys()
     print ks
 
@@ -34,8 +34,8 @@ def main():
 
     # im.imsave('label.png',label[0,0,],cmap=plt.cm.gray)
     # im.imsave('data.png',data[0,24,],cmap=plt.cm.gray)
-        
-    model = load_model(home+'models/'+model_name+'.h5')
+
+    model = load_model(path_test+'models/'+model_name+'.h5')
     y_output = np.array(model.predict(data[:,5:6,]))
 
     print np.max(data), np.max(label)
@@ -43,8 +43,8 @@ def main():
     print y_output.shape, np.max(y_output)
     print data.shape , label.shape
 
-    im.imsave('label.png',label[0,0,],cmap=plt.cm.gray)
-    im.imsave('output.png',y_output[0,0,],cmap=plt.cm.gray)
+    im.imsave(path_test+'results/'+'label.png',label[0,0,],cmap=plt.cm.gray)
+    im.imsave(path_test+'results/'+'output.png',y_output[0,0,],cmap=plt.cm.gray)
 
     fig = plt.figure(0)
     m,n = 2,2
@@ -61,10 +61,7 @@ def main():
         print compare_psnr(label[i,0,],y_output[i,0,])
 
     plt.subplot_tool()
-    plt.savefig(model_name+'.jpg')
-
-    
-
+    plt.savefig(path_test+'results/'+model_name+'.png')
 
 
 

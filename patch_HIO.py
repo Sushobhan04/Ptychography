@@ -57,13 +57,13 @@ def BatchGenerator(files,batch_size, net_type = 'conv'):
                 yield (data_bat, label_bat)
 
 def schedule(epoch):
-    lr = 0.01
-    if epoch<300:
+    lr = 0.1
+    if epoch<5:
         return lr
-    elif epoch<300:
-        return lr/4
-    elif epoch<800:
-        return lr/4
+    elif epoch<40:
+        return lr/10
+    elif epoch<100:
+        return lr/100
     else:
         return lr/8
 
@@ -106,17 +106,17 @@ def create_cnn_model(input,output_shape = (1,128,128),border_mode = 'same'):
 def create_dense_model(input,output_shape = (16,16),border_mode='same'):
     temp = Flatten()(input)
 
-    temp = Dense(8*1024,init='he_normal')(temp)
+    temp = Dense(output_shape[1]*output_shape[2],init='he_normal')(temp)
     # temp = BatchNormalization()(temp)
     temp = Activation('relu')(temp)
 
 
-    temp = Dense(8*1024,init='he_normal')(temp)
-    # temp = BatchNormalization()(temp)
-    temp = Activation('relu')(temp)
+    # temp = Dense(8*1024,init='he_normal')(temp)
+    # # temp = BatchNormalization()(temp)
+    # temp = Activation('relu')(temp)
 
     temp = Dense(output_shape[1]*output_shape[2],init='he_normal')(temp)
-    temp = BatchNormalization()(temp)
+    # temp = BatchNormalization()(temp)
     temp = Activation('relu')(temp)
 
     temp = Reshape(output_shape)(temp)
@@ -156,8 +156,8 @@ def train_model(path_train,home,model_name,mParam):
 
 
     # sgd = Adadelta(lr=lrate, rho=0.95, epsilon=1e-08, decay=decay)
-    train_files = [path_train+'dataset_1.h5']
-    val_files = [path_train+'valset_1.h5']
+    train_files = [path_train+'data/'+'dataset_1.h5']
+    val_files = [path_train+'data/'+'valset_1.h5']
     # for i in range(1,27):
     #     train_files .append(path_train+'set_'+str(i)+'.h5')
     # for i in range(27,29):
@@ -177,7 +177,7 @@ def train_model(path_train,home,model_name,mParam):
 
     model.fit_generator(train_generator,validation_data=val_generator,nb_val_samples=nb_val_samples, samples_per_epoch = samples_per_epoch, nb_epoch = epochs,verbose=1 ,callbacks=callbacks_list)
 
-    model.save(home+'models/'+model_name+'.h5')
+    model.save(path_train+'models/'+model_name+'.h5')
 
     # print model.summary()
 
@@ -199,7 +199,7 @@ def main():
     mParam['output_shape'] = (1,128,128)
 
     mParam['train_batch_size'] = 1
-    mParam['val_batch_size'] = 1
+    mParam['val_batch_size'] = 5
     mParam['samples_per_epoch'] = 91
     mParam['nb_val_samples'] = 5
 
