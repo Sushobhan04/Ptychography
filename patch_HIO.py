@@ -58,9 +58,9 @@ def BatchGenerator(files,batch_size, net_type = 'conv'):
 
 def schedule(epoch):
     lr = 0.1
-    if epoch<5:
+    if epoch<10:
         return lr
-    elif epoch<40:
+    elif epoch<20:
         return lr/10
     elif epoch<100:
         return lr/100
@@ -106,7 +106,7 @@ def create_cnn_model(input,output_shape = (1,128,128),border_mode = 'same'):
 def create_dense_model(input,output_shape = (16,16),border_mode='same'):
     temp = Flatten()(input)
 
-    temp = Dense(output_shape[1]*output_shape[2],init='he_normal')(temp)
+    temp = Dense(output_shape[1]*output_shape[2]*2//3,init='he_normal')(temp)
     # temp = BatchNormalization()(temp)
     temp = Activation('relu')(temp)
 
@@ -199,7 +199,7 @@ def main():
     mParam['output_shape'] = (1,128,128)
 
     mParam['train_batch_size'] = 1
-    mParam['val_batch_size'] = 5
+    mParam['val_batch_size'] = 1
     mParam['samples_per_epoch'] = 91
     mParam['nb_val_samples'] = 5
 
