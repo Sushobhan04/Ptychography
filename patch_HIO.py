@@ -56,11 +56,18 @@ def BatchGenerator(files,batch_size, net_type = 'conv'):
                 label_bat = label[i*batch_size:(i+1)*batch_size,]
                 yield (data_bat, label_bat)
 
+def TrainingSetGenerator(file):
+    curr_data = h5py.File(file,'r')
+    data = np.array(curr_data['data'])
+    label = np.array(curr_data['label'])
+    print data.shape, label.shape
+    return data,label
+
 def schedule(epoch):
-    lr = 0.1
+    lr = 0.0001
     if epoch<10:
         return lr
-    elif epoch<20:
+    elif epoch<30:
         return lr/10
     elif epoch<100:
         return lr/100
@@ -106,16 +113,16 @@ def create_cnn_model(input,output_shape = (1,128,128),border_mode = 'same'):
 def create_dense_model(input,output_shape = (16,16),border_mode='same'):
     temp = Flatten()(input)
 
-    temp = Dense(output_shape[1]*output_shape[2]*2//3,init='he_normal')(temp)
+    temp = Dense(4*output_shape[0]*output_shape[1],init='he_normal')(temp)
     # temp = BatchNormalization()(temp)
     temp = Activation('relu')(temp)
 
 
-    # temp = Dense(8*1024,init='he_normal')(temp)
+    temp = Dense(4*output_shape[0]*output_shape[1],init='he_normal')(temp)
     # # temp = BatchNormalization()(temp)
-    # temp = Activation('relu')(temp)
+    temp = Activation('relu')(temp)
 
-    temp = Dense(output_shape[1]*output_shape[2],init='he_normal')(temp)
+    temp = Dense(output_shape[0]*output_shape[1],init='he_normal')(temp)
     # temp = BatchNormalization()(temp)
     temp = Activation('relu')(temp)
 
@@ -154,18 +161,14 @@ def train_model(path_train,home,model_name,mParam):
     elif net_type == 'conv':
         model = create_cnn_model(input,output_shape=output_shape,border_mode=border_mode)
 
+    # train_files = [path_train+'data/'+'dataset_1.h5']
+    # val_files = [path_train+'data/'+'valset_1.h5']
 
-    # sgd = Adadelta(lr=lrate, rho=0.95, epsilon=1e-08, decay=decay)
-    train_files = [path_train+'data/'+'dataset_1.h5']
-    val_files = [path_train+'data/'+'valset_1.h5']
-    # for i in range(1,27):
-    #     train_files .append(path_train+'set_'+str(i)+'.h5')
-    # for i in range(27,29):
-    #     val_files .append(path_train+'set_'+str(i)+'.h5')
+    train_file = path_train+'datasets/'+'patch_64.h5'
+    data, label = TrainingSetGenerator(train_file)
 
-    # print files
-    train_generator = BatchGenerator(train_files,train_batch_size,net_type = mParam['net_type'])
-    val_generator = BatchGenerator(val_files,val_batch_size,net_type = mParam['net_type'])
+    # train_generator = BatchGenerator(train_files,train_batch_size,net_type = mParam['net_type'])
+    # val_generator = BatchGenerator(val_files,val_batch_size,net_type = mParam['net_type'])
     lrate_sch = LearningRateScheduler(schedule)
     early_stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=0, mode='auto')
     callbacks_list = [lrate_sch,early_stop]
@@ -175,8 +178,8 @@ def train_model(path_train,home,model_name,mParam):
     model.compile(loss='mean_squared_error',
               optimizer=sgd)
 
-    model.fit_generator(train_generator,validation_data=val_generator,nb_val_samples=nb_val_samples, samples_per_epoch = samples_per_epoch, nb_epoch = epochs,verbose=1 ,callbacks=callbacks_list)
-
+    # model.fit_generator(train_generator,validation_data=val_generator,nb_val_samples=nb_val_samples, samples_per_epoch = samples_per_epoch, nb_epoch = epochs,verbose=1 ,callbacks=callbacks_list)
+    model.fit(data, label, batch_size=train_batch_size, nb_epoch=epochs, verbose=1, callbacks=callbacks_list, validation_split=0.1, shuffle=True)
     model.save(path_train+'models/'+model_name+'.h5')
 
     # print model.summary()
@@ -188,6 +191,8 @@ def main():
     home = "/home/sushobhan/Documents/research/ptychography/"
     model_name = sys.argv[1]
 
+    N = 64
+
     mParam = {}
     mParam['lrate'] = 0.001
     mParam['epochs'] = 50
@@ -195,13 +200,13 @@ def main():
     mParam['net_type'] = 'dense'
     mParam['border_mode'] = 'same'
 
-    mParam['input_shape'] = (1,128,128)
-    mParam['output_shape'] = (1,128,128)
+    mParam['input_shape'] = (N,N)
+    mParam['output_shape'] = (N,N)
 
-    mParam['train_batch_size'] = 1
-    mParam['val_batch_size'] = 1
-    mParam['samples_per_epoch'] = 91
-    mParam['nb_val_samples'] = 5
+    mParam['train_batch_size'] = 128
+    mParam['val_batch_size'] = 128
+    mParam['samples_per_epoch'] = 3300
+    mParam['nb_val_samples'] = 300
 
     if mParam['net_type'] =='conv':
         mParam['input_shape'] = (1,mParam['input_shape'][0],mParam['input_shape'][1])
