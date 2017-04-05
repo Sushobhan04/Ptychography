@@ -65,15 +65,15 @@ def TrainingSetGenerator(file):
     return data,label
 
 def schedule(epoch):
-    lr = 0.0001
-    if epoch<10:
+    lr = 0.001
+    if epoch<100:
         return lr
-    elif epoch<30:
+    elif epoch<200:
         return lr/10
-    elif epoch<100:
+    elif epoch<350:
         return lr/100
     else:
-        return lr/8
+        return lr/1000
 
 def _residual_block(filters, kernel_size = 3, repetitions=1):
     def f(input):
@@ -192,7 +192,7 @@ def train_model(path_train,home,model_name,mParam):
     train_generator = BatchGenerator(dataset,train_batch_size,dtype = 'train')
     val_generator = BatchGenerator(dataset,val_batch_size,dtype = 'val')
     lrate_sch = LearningRateScheduler(schedule)
-    early_stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=0, mode='auto')
+    early_stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=50, verbose=0, mode='auto')
     callbacks_list = [lrate_sch,early_stop]
 
     sgd = SGD(lr=lrate, momentum=0.9, decay=decay, nesterov=True)
@@ -218,7 +218,7 @@ def main():
 
     mParam = {}
     mParam['lrate'] = 0.001
-    mParam['epochs'] = 5
+    mParam['epochs'] = 500
     mParam['decay'] = 0.0
     mParam['border_mode'] = 'same'
 
