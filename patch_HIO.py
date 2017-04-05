@@ -66,14 +66,14 @@ def TrainingSetGenerator(file):
 
 def schedule(epoch):
     lr = 0.0001
-    if epoch<10:
+    if epoch<150:
         return lr
-    elif epoch<30:
+    elif epoch<300:
         return lr/10
-    elif epoch<100:
+    elif epoch<450:
         return lr/100
     else:
-        return lr/8
+        return lr/1000
 
 def _residual_block(filters, kernel_size = 3, repetitions=1):
     def f(input):
@@ -197,7 +197,7 @@ def train_model(path_train,home,model_name,mParam):
 
     sgd = SGD(lr=lrate, momentum=0.9, decay=decay, nesterov=True)
 
-    model.compile(loss='mean_absolute_error',
+    model.compile(loss='mean_squared_error',
               optimizer=sgd)
 
     model.fit_generator(train_generator,validation_data=val_generator, validation_steps = validation_steps,steps_per_epoch = steps_per_epoch, epochs = epochs,verbose=1 ,callbacks=callbacks_list)
@@ -218,7 +218,7 @@ def main():
 
     mParam = {}
     mParam['lrate'] = 0.001
-    mParam['epochs'] = 5
+    mParam['epochs'] = 500
     mParam['decay'] = 0.0
     mParam['border_mode'] = 'same'
 
