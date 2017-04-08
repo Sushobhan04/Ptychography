@@ -24,9 +24,9 @@ def main():
 
     # file_name = 'lena_1.h5'
     # file_name = 'resChart.h5'
-    file_name = 'fft_64.h5'
+    file_name = 'font003.h5'
 
-    file = h5py.File(path_test+'datasets/'+ file_name,'r')
+    file = h5py.File(path_test+'datasets/font_64/'+ file_name,'r')
     ks = file.keys()
 
     data = file['test']['data'][()]
@@ -43,8 +43,8 @@ def main():
     print y_output.shape, np.max(y_output)
     print data.shape , label.shape
 
-    im.imsave(path_test+'results/'+'label_'+model_name+'.png',label[0,0,],cmap=plt.cm.gray)
-    im.imsave(path_test+'results/'+'output_'+model_name+'.png',y_output[0,0,],cmap=plt.cm.gray)
+    # im.imsave(path_test+'results/'+'label_'+model_name+'.png',label[0,0,],cmap=plt.cm.gray)
+    # im.imsave(path_test+'results/'+'output_'+model_name+'.png',y_output[0,0,],cmap=plt.cm.gray)
 
     a = y_output[:,0,:,:]+ 1j*y_output[:,1,:,:]
     c = label[:,0,:,:]+ 1j*label[:,1,:,:]
@@ -58,8 +58,8 @@ def main():
     b = np.absolute(np.array(b))
     d = np.absolute(np.array(d))
 
-    im.imsave(path_test+'results/'+'ifft.png',b[0,:,:],cmap=plt.cm.gray)
-    im.imsave(path_test+'results/'+'ifft_label.png',d[0,:,:],cmap=plt.cm.gray)
+    im.imsave(path_test+'results/'+'ifft_model_'+model_name+'.png',b[0,:,:],cmap=plt.cm.gray)
+    im.imsave(path_test+'results/'+'ifft_label_'+model_name+'.png',d[0,:,:],cmap=plt.cm.gray)
 
     # fig = plt.figure(0)
     # m,n = 2,2

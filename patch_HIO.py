@@ -15,6 +15,7 @@ from keras.layers.convolutional import (
     Conv2DTranspose
 )
 from keras.layers.normalization import BatchNormalization
+from keras.layers.merge import concatenate
 from keras import backend as K
 import numpy as np
 import h5py
@@ -24,6 +25,7 @@ from keras import callbacks
 from keras.callbacks import LearningRateScheduler,EarlyStopping
 import math
 import sys
+from keras import losses
 
 K.set_image_dim_ordering('th')
 
@@ -65,13 +67,15 @@ def TrainingSetGenerator(file):
     return data,label
 
 def schedule(epoch):
-    lr = 0.0001
-    if epoch<150:
+    lr = 0.00001
+    if epoch<15:
         return lr
-    elif epoch<300:
+    elif epoch<150:
         return lr/10
+    elif epoch<300:
+        return lr/40
     elif epoch<450:
-        return lr/100
+        return lr/160
     else:
         return lr/1000
 
@@ -149,15 +153,21 @@ def create_model(input_shape, output_shape):
     input = Input(shape=input_shape)
 
     temp = _conv_relu(filters = 64, kernel_size = 5)(input)
-    temp = _residual_block(filters = 64, kernel_size = 3, repetitions=1)(temp)
-    temp = _residual_block(filters = 64, kernel_size = 3, repetitions=1)(temp)
-    temp = _residual_block(filters = 64, kernel_size = 3, repetitions=1)(temp)
-    temp = _residual_block(filters = 64, kernel_size = 3, repetitions=1)(temp)
 
-    # temp = _deconv_block(filters = 64, kernel_size = 3)(temp)
-    # temp = _deconv_block(filters = 64, kernel_size = 3)(temp)
+    temp1 = _residual_block(filters = 64, kernel_size = 3, repetitions=1)(temp)
+    temp1 = _residual_block(filters = 64, kernel_size = 3, repetitions=1)(temp1)
+    # temp1 = _residual_block(filters = 64, kernel_size = 3, repetitions=1)(temp1)
+    # temp1 = _residual_block(filters = 64, kernel_size = 3, repetitions=1)(temp1)
+    temp1 = _conv(filters = 1, kernel_size = 5)(temp1)
 
-    temp = _conv(filters = 2, kernel_size = 5)(temp)
+    temp2 = _residual_block(filters = 64, kernel_size = 3, repetitions=1)(temp)
+    temp2 = _residual_block(filters = 64, kernel_size = 3, repetitions=1)(temp2)
+    # temp2 = _residual_block(filters = 64, kernel_size = 3, repetitions=1)(temp2)
+    # temp2 = _residual_block(filters = 64, kernel_size = 3, repetitions=1)(temp2)
+    temp2 = _conv(filters = 1, kernel_size = 5)(temp2)
+
+    temp = concatenate([temp1,temp2],axis=CHANNEL_AXIS)
+
 
     model = Model(input= input, output = temp)
 
@@ -186,19 +196,26 @@ def train_model(path_train,home,model_name,mParam):
 
     # train_files = [path_train+'data/'+'dataset_1.h5']
     # val_files = [path_train+'data/'+'valset_1.h5']
+    dataset = []
 
-    dataset = [path_train+'datasets/'+mParam['set_name']]
+    for i in range(1,10):
+        dataset.append(path_train+'datasets/'+mParam['set_name']+'/font'+str(i).zfill(3)+'.h5')
 
     train_generator = BatchGenerator(dataset,train_batch_size,dtype = 'train')
     val_generator = BatchGenerator(dataset,val_batch_size,dtype = 'val')
     lrate_sch = LearningRateScheduler(schedule)
-    early_stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=0, mode='auto')
+    early_stop = EarlyStopping(monitor='val_loss', min_delta=0, patience=50, verbose=0, mode='auto')
     callbacks_list = [lrate_sch,early_stop]
 
     sgd = SGD(lr=lrate, momentum=0.9, decay=decay, nesterov=True)
 
-    model.compile(loss='mean_squared_error',
+    # model.compile(loss='mean_squared_error',
+    #           optimizer=sgd)
+
+    model.compile(loss=losses.fft_loss,
               optimizer=sgd)
+
+    # print validation_steps
 
     model.fit_generator(train_generator,validation_data=val_generator, validation_steps = validation_steps,steps_per_epoch = steps_per_epoch, epochs = epochs,verbose=1 ,callbacks=callbacks_list)
     # model.fit(data, label, batch_size=train_batch_size, nb_epoch=epochs, verbose=1, callbacks=callbacks_list, validation_split=0.1, shuffle=True)
@@ -218,18 +235,18 @@ def main():
 
     mParam = {}
     mParam['lrate'] = 0.001
-    mParam['epochs'] = 500
+    mParam['epochs'] = 20
     mParam['decay'] = 0.0
     mParam['border_mode'] = 'same'
 
     mParam['input_shape'] = (1,None, None)
     mParam['output_shape'] = (2, None, None)
 
-    mParam['train_batch_size'] = 128
-    mParam['val_batch_size'] = 128
-    mParam['steps_per_epoch'] = 2700//mParam['train_batch_size']
-    mParam['validation_steps'] = 300//mParam['val_batch_size']
-    mParam['set_name'] = set_name+'.h5'
+    mParam['train_batch_size'] = 256
+    mParam['val_batch_size'] = 256
+    mParam['steps_per_epoch'] = 8120//mParam['train_batch_size']
+    mParam['validation_steps'] = 1000//mParam['val_batch_size']
+    mParam['set_name'] = set_name
 
     train_model(path_train,home,model_name,mParam)
 

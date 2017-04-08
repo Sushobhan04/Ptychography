@@ -3,6 +3,7 @@ import numpy.fft as fft
 import matplotlib.pyplot as plt
 import matplotlib.image as im
 from PIL import Image
+import random
 import os
 import h5py
 
@@ -13,6 +14,15 @@ def plot_arr(arr,name):
 def add_dataset(data,label,grp):
 	grp.create_dataset("data",data=data)
 	grp.create_dataset("label",data = label)
+
+def shuffle_pairs(data, label):
+	c = list(zip(data, label))
+
+	random.shuffle(c)
+
+	data, label = zip(*c)
+
+	return np.array(data), np.array(label)
 
 def tvt_split(data,label, f, split = (0.8,0.1,0.1)):
 	l = data.shape[0]
@@ -51,66 +61,84 @@ def patchify(img,size):
 def batch_fft(batch):
 	batch_f = []
 	for x in batch:
-		batch_f.append(fft.fftshift(fft.fft2(x)))
+		batch_f.append(fft_imgx)
 	return np.array(batch_f)
+
+def fft_img(img):
+	return fft.fftshift(fft.fft2(img))
+
 
 def filter_data(data,factor,thresh = (-1.0,1.0)):
 	d = data/factor
-	d = np.where(d<thresh[0],0.0, d)
-	d = np.where(d>thresh[1],0.0, d)
+	# d = np.where(d<thresh[0],0.0, d)
+	# d = np.where(d>thresh[1],0.0, d)
 
 	return d
 
 
 def create_dataset(N,source,destination,dataset_name,factor):
-	dataset = []
-	labelset = []
+	
 
-	for filename in os.listdir(source):
-		img = np.asarray(Image.open(source+filename).convert('L'))/255.0
-		patches = patchify(img,N)
-		patches_fft = batch_fft(patches)
+	it = 63
+	src = source
+	for i in range(1,it):
+		dataset = []
+		labelset = []
+		source = src + 'Sample'+str(i).zfill(3)+'/'
+		print i,
 
-		dataset.extend(np.absolute(patches_fft))
-		labelset.extend(np.array([patches_fft.real,patches_fft.imag]).transpose(1,0,2,3))
+		for filename in os.listdir(source):
+			# img = np.asarray(Image.open(source+filename).convert('L'))/255.0
+			img =-1*np.asarray(Image.open(source+filename).convert('L').resize((N,N)))/255.0 +1.0
 
-	dataset = np.expand_dims(np.array(dataset),axis=1)
-	labelset =np.array(labelset)
+			# print img[0,0],
+			# patches = patchify(img,N)
+			patch_fft = fft_img(img)
 
-	thresh = (-10.0,10.0)
+			dataset.append([np.absolute(patch_fft)])
+			labelset.append([patch_fft.real, patch_fft.imag])
 
-	dataset = filter_data(dataset, factor,thresh)
-	labelset = filter_data(labelset, factor,thresh)
+		dataset = np.array(dataset)
+		labelset = np.array(labelset)
 
-	print dataset.shape
-	print labelset.shape
+		# thresh = (-10.0,10.0)
+
+		dataset = filter_data(dataset, factor)
+		labelset = filter_data(labelset, factor)
+
+		print dataset.shape, type(dataset[0,0,0,0])
+		print labelset.shape,type(labelset[0,0,0,0])
 
 
-	f = h5py.File(destination+dataset_name+'.h5','w')
-	f = tvt_split(dataset, labelset, f)
-	# print f.keys()
-	# k = f['train']['data'][()]
-	# print k
-	f.close()
+		f = h5py.File(destination+dataset_name+str(i).zfill(3)+'.h5','w')
+		dataset, labelset = shuffle_pairs(dataset, labelset)
+		f = tvt_split(dataset, labelset, f)
+		# add_dataset(dataset, labelset, f)
+		# print f.keys()
+		# k = f['data'][()]
+		# print k
+		f.close()
 
 
 	print "dataset created"
 
-	plot_arr(labelset[0,0],'test_real_img')
-	plot_arr(labelset[0,1],'test_img_img')
-	plot_arr(dataset[0,0],'test_fft')
+	# plot_arr(labelset[0,0],'test_real_img')
+	# plot_arr(labelset[0,1],'test_img_img')
+	# plot_arr(dataset[0,0],'test_fft')
 	# print labelset[0], dataset[0]
-	print np.max(dataset), np.min(np.absolute(dataset)),np.min(dataset), np.mean(dataset), np.median(dataset)
-	print np.max(labelset), np.min(np.absolute(labelset)),np.min(labelset), np.mean(labelset),np.median(labelset)
+	# print np.max(dataset), np.min(np.absolute(dataset)),np.min(dataset), np.mean(dataset), np.median(dataset)
+	# print np.max(labelset), np.min(np.absolute(labelset)),np.min(labelset), np.mean(labelset),np.median(labelset)
 	# print len(dataset)
 
 def main():
-	output_path = '/home/sushobhan/Documents/data/ptychography/datasets/'
-	source = '/home/sushobhan/Documents/data/ptychography/data/Set91/'
+	output_path = '/home/sushobhan/Documents/data/ptychography/datasets/font_64/'
+	# source = '/home/sushobhan/Documents/data/ptychography/data/Set91/'
+	source = '/home/sushobhan/Documents/data/ptychography/data/English/Fnt/'
 	N = 64
-	factor = 1000.0
+	factor = 1.0
 
-	dataset_name = 'fft_'+str(N)
+	# dataset_name = 'fft_'+str(N)
+	dataset_name = 'font'
 
 	create_dataset(N,source,output_path,dataset_name, factor)
 
